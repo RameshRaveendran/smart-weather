@@ -34,9 +34,9 @@ const login = async (req, res, next) => {
       );
     }
 
-    const result = await loginUser({ email, password });
+    const { token } = await loginUser({ email, password });
 
-    return sendSuccess(res, 'Login successful', result, 200);
+    return sendSuccess(res, 'Login successful', { token }, 200);
   } catch (err) {
     return next(err);
   }
