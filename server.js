@@ -1,13 +1,14 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;

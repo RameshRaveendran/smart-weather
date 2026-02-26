@@ -44,19 +44,13 @@ const getWeatherData = async (req, res, next) => {
   }
 };
 
-// Keep analytics controller placeholder for future expansion.
 const getAnalytics = async (req, res, next) => {
   try {
-    const { from, to, limit } = req.query || {};
-
     const result = await getWeatherAnalytics({
       userId: req.user.id,
-      from,
-      to,
-      limit: limit ? Number(limit) : undefined,
     });
 
-    return sendSuccess(res, 'Weather analytics fetched successfully', result, 200);
+    return sendSuccess(res, 'Analytics fetched successfully', result, 200);
   } catch (err) {
     return next(err);
   }

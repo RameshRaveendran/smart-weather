@@ -1,7 +1,9 @@
 // Weather service: external API calls and analytics logic.
 
 const axios = require('axios');
+const mongoose = require('mongoose');
 const AppError = require('../utils/AppError');
+const SearchHistory = require('../models/SearchHistory');
 
 const getWeather = async (city) => {
   if (!process.env.WEATHER_API_KEY) {
@@ -52,14 +54,56 @@ const getWeather = async (city) => {
   }
 };
 
-// Placeholder for future analytics implementation, kept for architecture consistency.
-const getWeatherAnalytics = async ({ userId, from, to, limit }) => {
+const getWeatherAnalytics = async ({ userId }) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  const [result] = await SearchHistory.aggregate([
+    { $match: { userId: userObjectId } },
+    {
+      $facet: {
+        total: [{ $count: 'count' }],
+        byCity: [
+          { $group: { _id: '$city', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 1 },
+        ],
+        avgTemp: [
+          {
+            $group: {
+              _id: null,
+              avg: { $avg: '$temperature' },
+            },
+          },
+        ],
+        recent: [
+          { $sort: { searchedAt: -1 } },
+          { $limit: 5 },
+          {
+            $project: {
+              _id: 0,
+              city: 1,
+              temperature: 1,
+              humidity: 1,
+              searchedAt: 1,
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  const totalSearches = result && result.total.length > 0 ? result.total[0].count : 0;
+  const mostSearchedCity =
+    result && result.byCity.length > 0 ? result.byCity[0]._id : null;
+  const averageTemperature =
+    result && result.avgTemp.length > 0 ? result.avgTemp[0].avg : null;
+  const recentSearches = result ? result.recent : [];
+
   return {
-    totalSearches: 0,
-    topCities: [],
-    averageTemperature: null,
-    averageHumidity: null,
-    searches: [],
+    totalSearches,
+    mostSearchedCity,
+    recentSearches,
+    averageTemperature,
   };
 };
 
