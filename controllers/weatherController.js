@@ -15,6 +15,30 @@ const getWeatherData = async (req, res, next) => {
       );
     }
 
+    const now = new Date();
+    const tenMinutesMs = 10 * 60 * 1000;
+
+    // Try to use cached weather data from the last 10 minutes
+    const latestEntry = await SearchHistory.findOne({
+      userId: req.user.id,
+      city,
+    })
+      .sort({ searchedAt: -1 })
+      .lean();
+
+    if (latestEntry && now - latestEntry.searchedAt <= tenMinutesMs) {
+      return sendSuccess(
+        res,
+        'Weather fetched successfully',
+        {
+          city: latestEntry.city,
+          temperature: latestEntry.temperature,
+          humidity: latestEntry.humidity,
+        },
+        200
+      );
+    }
+
     const weather = await getWeather(city);
 
     try {
