@@ -1,8 +1,9 @@
 const { sendSuccess } = require('../utils/apiResponse');
 const AppError = require('../utils/AppError');
-const { fetchWeatherForCity, getWeatherAnalytics } = require('../services/weatherService');
+const { getWeather, getWeatherAnalytics } = require('../services/weatherService');
+const SearchHistory = require('../models/SearchHistory');
 
-const getWeather = async (req, res, next) => {
+const getWeatherData = async (req, res, next) => {
   try {
     const { city } = req.query || {};
 
@@ -14,14 +15,36 @@ const getWeather = async (req, res, next) => {
       );
     }
 
-    const result = await fetchWeatherForCity({ userId: req.user.id, city });
+    const weather = await getWeather(city);
 
-    return sendSuccess(res, 'Weather data fetched successfully', result, 200);
+    try {
+      await SearchHistory.create({
+        userId: req.user.id,
+        city: weather.city,
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+        searchedAt: new Date(),
+      });
+    } catch (dbError) {
+      return next(new AppError('Database error', 500, 'DB_ERROR', null, dbError.message));
+    }
+
+    return sendSuccess(
+      res,
+      'Weather fetched successfully',
+      {
+        city: weather.city,
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+      },
+      200
+    );
   } catch (err) {
     return next(err);
   }
 };
 
+// Keep analytics controller placeholder for future expansion.
 const getAnalytics = async (req, res, next) => {
   try {
     const { from, to, limit } = req.query || {};
@@ -40,7 +63,7 @@ const getAnalytics = async (req, res, next) => {
 };
 
 module.exports = {
-  getWeather,
+  getWeatherData,
   getAnalytics,
 };
 
